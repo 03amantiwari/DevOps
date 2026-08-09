@@ -61,6 +61,9 @@ public class SecurityConfiguration {
 				.requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 				// Public Endpoints
 				.requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/auth/**", "/api/v1/auth/**").permitAll()
+				.requestMatchers("/actuator/health", "/actuator/health/**").permitAll()
+            	// Secure all other actuator endpoints (metrics, env, heapdump)
+            	.requestMatchers("/actuator/**").hasRole("ADMIN")
 
 				// Public: Read-only restaurant endpoints
 				.requestMatchers(HttpMethod.GET, "/restaurants", "/restaurants/*").permitAll()
