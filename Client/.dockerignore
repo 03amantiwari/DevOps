@@ -1,0 +1,32 @@
+#STAGE 1 - BUILD 
+#Compiles the React + app into static HTML/CSS/JS files (dist/)
+
+FROM node:20 -alpine AS build
+
+WORKDIR /app
+
+# VITE bakes env -> src code compiled
+# env variable replaces with the there hardcoded value 
+# while working with real server url it create problem
+# solved using ARG variable
+# this default url is override by passed ARG value always
+
+ARG VITE_API_URL=htpp://localhost:5173:8080/api/v1
+ENV VITE_API_URL=$VITE_API_URL
+
+# install the dependency first 
+COPY package.json package-lock.json ./
+
+# why ci -> Deterministic docker build make read only ops (pkg json file and stick to version mention json file)
+RUN npm ci  
+
+# copy the source code and build the production bundle 
+RUN npm run build
+
+#======================================================
+#  STAGE 2 - SERVE 
+# serve the static /dist files with nginx. Tiny , fast , production grade
+
+FROM nginx:1.27-alpine
+
+
