@@ -23,7 +23,7 @@ pipeline {
  
     environment {
         // ---- Replace with your DockerHub username ----
-        DOCKERHUB_USERNAME = "yourdockerhubname"
+        DOCKERHUB_USERNAME = "0303amantiwari"
  
         // Image names — build number gives unique tag every build
         BACKEND_IMAGE  = "${DOCKERHUB_USERNAME}/easyseat-backend"
