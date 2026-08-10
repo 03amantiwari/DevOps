@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { useAuth } from '../context/AuthContext'
 
-const CHAT_API_URL = 'https://helper-eligible-wikipedia.ngrok-free.dev/chat?token=munni-badnaam-hue-tere-liye'
+const CHAT_TOKEN = 'munni-badnaam-hue-tere-liye'
 
 export default function ChatBot() {
   const { isCustomer, isLoggedIn } = useAuth()
@@ -11,7 +11,6 @@ export default function ChatBot() {
   ])
   const [inputText, setInputText] = useState('')
   const [botTyping, setBotTyping] = useState(false)
-  const [bot_replies, setBotReplies] = useState([])
   const bottomRef = useRef(null)
 
   useEffect(() => {
@@ -30,24 +29,15 @@ export default function ChatBot() {
     setBotTyping(true)
 
     try {
-      const url = `${CHAT_API_URL}&ngrok-skip-browser-warning=true&message=${encodeURIComponent(text)}`
-      const response = await fetch(url, {
-        method: 'GET',
-        headers: {
-          'ngrok-skip-browser-warning': 'true',
-          'question': text,
-          'bot_replies': JSON.stringify(bot_replies)
-        }
-      })
+      const url = `http://103.235.106.55:8000/chat?token=${CHAT_TOKEN}&message=${encodeURIComponent(text)}`
+      const response = await fetch(url)
 
       if (!response.ok) {
         throw new Error(`Server status ${response.status}`)
       }
 
       const data = await response.json()
-      const replyText = data.response || "I couldn't get a response from the server."
-
-      setBotReplies(prev => [...prev, replyText])
+      const replyText = typeof data === 'string' ? data : (data.response || data.message || "I couldn't get a response from the server.")
 
       const botMsg = { id: Date.now() + 1, text: replyText, sender: 'bot' }
       setMessages(prev => [...prev, botMsg])

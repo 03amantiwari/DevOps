@@ -20,7 +20,9 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import lombok.RequiredArgsConstructor;
 
+import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Configuration
 @EnableWebSecurity
@@ -60,7 +62,7 @@ public class SecurityConfiguration {
 				
 				.requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 				// Public Endpoints
-				.requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/auth/**", "/api/v1/auth/**").permitAll()
+				.requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/auth/**").permitAll()
 				.requestMatchers("/actuator/health", "/actuator/health/**").permitAll()
             	// Secure all other actuator endpoints (metrics, env, heapdump)
             	.requestMatchers("/actuator/**").hasRole("ADMIN")
@@ -116,13 +118,22 @@ public class SecurityConfiguration {
     CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
 
-        // Support Ngrok domains (.app and .dev) as well as Localhost
-        config.setAllowedOriginPatterns(List.of(corsAllowOrigin));
+        if (corsAllowOrigin != null && !corsAllowOrigin.isBlank()) {
+            List<String> origins = Arrays.stream(corsAllowOrigin.split(","))
+                    .map(String::trim)
+                    .filter(s -> !s.isEmpty())
+                    .collect(Collectors.toList());
+            config.setAllowedOriginPatterns(origins);
+        } else {
+            config.setAllowedOriginPatterns(List.of("*"));
+        }
+        
 
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         
         // Allow all headers + expose Private Network header
         config.setAllowedHeaders(List.of("*"));
+        config.setExposedHeaders(List.of("*"));
         
         config.setAllowCredentials(true);
 
