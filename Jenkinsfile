@@ -88,11 +88,11 @@ pipeline {
         stage('Build JAR') {
             steps {
                 echo "======== Stage 3: Building JAR ========"
-                dir('Backend') {
+                dir('Server') {
                     sh 'mvn package -DskipTests -B'
                 }
                 // Verify JAR was created
-                sh 'ls -lh Backend/target/*.jar'
+                sh 'ls -lh Server/target/*.jar'
             }
         }
  
@@ -121,7 +121,7 @@ pipeline {
                     docker build \
                         -t ${BACKEND_IMAGE}:${IMAGE_TAG} \
                         -t ${BACKEND_IMAGE}:latest \
-                        ./Backend
+                        ./Server
                 """
  
                 // Verify image created
@@ -135,7 +135,7 @@ pipeline {
                         --build-arg VITE_API_URL=BACKEND_URL_PLACEHOLDER \
                         -t ${FRONTEND_IMAGE}:${IMAGE_TAG} \
                         -t ${FRONTEND_IMAGE}:latest \
-                        ./frontend
+                        ./Client
                 """
  
                 sh "docker images | grep easyseat-frontend"
@@ -162,7 +162,7 @@ pipeline {
  
                 withCredentials([
                     usernamePassword(
-                        credentialsId: 'dockerhub-credentials',
+                        credentialsId: 'DockerHubCred',
                         usernameVariable: 'DOCKER_USER',
                         passwordVariable: 'DOCKER_PASS'
                     )
