@@ -2,7 +2,7 @@
 #STAGE 1 - BUILD
 #use a full maven + JDK 21 image to compile the spring Boot app into a jar
 
-FROM maven:3.9-eclipse-temurin-21 AS build
+FROM maven:3.9-eclipse-temurin-21-alpine AS build
 
 WORKDIR /app
 
@@ -22,7 +22,7 @@ RUN mvn clean package -DskipTests -B
 #STAGE 2 - RUNTIME 
 #use a light weight JRE-only image (no Maven ,no JDK) to run the jar
 
-FROM eclipse-termurin:21-jre-alpine
+FROM eclipse-temurin:21-jre-alpine
 
 WORKDIR /app
 
