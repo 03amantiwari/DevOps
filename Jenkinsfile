@@ -1,4 +1,3 @@
-
 // =========================================================================
 //  Jenkinsfile — Jenkins-only stages (No EC2 deploy yet)
 //
@@ -12,27 +11,26 @@
 //    1. DOCKERHUB_USERNAME → your actual DockerHub username
 //    2. GitHub repo URL in job configuration
 // =========================================================================
- 
+
 pipeline {
- 
+
     agent any
 
- 
     environment {
         // ---- Replace with your DockerHub username ----
-        DOCKERHUB_USERNAME = "0303amantiwari"
- 
+        DOCKERHUB_USERNAME = "yourdockerhubname"
+
         // Image names — build number gives unique tag every build
         BACKEND_IMAGE  = "${DOCKERHUB_USERNAME}/easyseat-backend"
         FRONTEND_IMAGE = "${DOCKERHUB_USERNAME}/easyseat-frontend"
         IMAGE_TAG      = "v${BUILD_NUMBER}"
- 
+
         // Non-secret config
         CONTEXT_PATH   = "/api/v1"
     }
- 
+
     stages {
- 
+
         // ----------------------------------------------------------------
         //  STAGE 1 — Checkout
         //
@@ -48,7 +46,7 @@ pipeline {
                 // Backend/, frontend/, docker-compose.yml, Jenkinsfile
             }
         }
- 
+
         // ----------------------------------------------------------------
         //  STAGE 2 — Test
         //
@@ -58,23 +56,23 @@ pipeline {
         //
         //  -B = batch mode: no color codes, clean CI logs
         // ----------------------------------------------------------------
-        // stage('Test') {
-        //     steps {
-        //         echo "======== Stage 2: Running Maven tests ========"
-        //         dir('Backend') {
-        //             sh 'mvn test -B'
-        //         }
-        //     }
-        //     post {
-        //         success {
-        //             echo "✅ All tests passed"
-        //         }
-        //         failure {
-        //             echo "❌ Tests failed — pipeline stopped. Fix tests first."
-        //         }
-        //     }
-        // }
- 
+        stage('Test') {
+            steps {
+                echo "======== Stage 2: Running Maven tests ========"
+                dir('Backend') {
+                    sh 'mvn test -B'
+                }
+            }
+            post {
+                success {
+                    echo "✅ All tests passed"
+                }
+                failure {
+                    echo "❌ Tests failed — pipeline stopped. Fix tests first."
+                }
+            }
+        }
+
         // ----------------------------------------------------------------
         //  STAGE 3 — Build JAR
         //
@@ -89,14 +87,14 @@ pipeline {
         stage('Build JAR') {
             steps {
                 echo "======== Stage 3: Building JAR ========"
-                dir('Server') {
+                dir('Backend') {
                     sh 'mvn package -DskipTests -B'
                 }
                 // Verify JAR was created
-                sh 'ls -lh Server/target/*.jar'
+                sh 'ls -lh Backend/target/*.jar'
             }
         }
- 
+
         // ----------------------------------------------------------------
         //  STAGE 4 — Docker Build
         //
@@ -116,18 +114,18 @@ pipeline {
         stage('Docker Build') {
             steps {
                 echo "======== Stage 4: Building Docker images ========"
- 
+
                 // ---- Backend ----
                 sh """
                     docker build \
                         -t ${BACKEND_IMAGE}:${IMAGE_TAG} \
                         -t ${BACKEND_IMAGE}:latest \
-                        ./Server
+                        ./Backend
                 """
- 
+
                 // Verify image created
                 sh "docker images | grep easyseat-backend"
- 
+
                 // ---- Frontend ----
                 // TODO: Replace BACKEND_URL_PLACEHOLDER with real EC2 IP
                 // when EC2 is ready. Format: http://<EC2-IP>:8080/api/v1
@@ -136,13 +134,13 @@ pipeline {
                         --build-arg VITE_API_URL=BACKEND_URL_PLACEHOLDER \
                         -t ${FRONTEND_IMAGE}:${IMAGE_TAG} \
                         -t ${FRONTEND_IMAGE}:latest \
-                        ./Client
+                        ./frontend
                 """
- 
+
                 sh "docker images | grep easyseat-frontend"
             }
         }
- 
+
         // ----------------------------------------------------------------
         //  STAGE 5 — Docker Push
         //
@@ -160,10 +158,10 @@ pipeline {
         stage('Docker Push') {
             steps {
                 echo "======== Stage 5: Pushing images to DockerHub ========"
- 
+
                 withCredentials([
                     usernamePassword(
-                        credentialsId: 'DockerHubCred',
+                        credentialsId: 'dockerhub-credentials',
                         usernameVariable: 'DOCKER_USER',
                         passwordVariable: 'DOCKER_PASS'
                     )
@@ -172,17 +170,17 @@ pipeline {
                         # Login to DockerHub
                         echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
                         echo "✅ DockerHub login successful"
- 
+
                         # Push backend — both tags
                         docker push ${BACKEND_IMAGE}:${IMAGE_TAG}
                         docker push ${BACKEND_IMAGE}:latest
                         echo "✅ Backend image pushed: ${BACKEND_IMAGE}:${IMAGE_TAG}"
- 
+
                         # Push frontend — both tags
                         docker push ${FRONTEND_IMAGE}:${IMAGE_TAG}
                         docker push ${FRONTEND_IMAGE}:latest
                         echo "✅ Frontend image pushed: ${FRONTEND_IMAGE}:${IMAGE_TAG}"
- 
+
                         # Always logout
                         docker logout
                         echo "✅ Logged out from DockerHub"
@@ -190,7 +188,7 @@ pipeline {
                 }
             }
         }
- 
+
         // ----------------------------------------------------------------
         //  STAGE 6 — Deploy to EC2  [DISABLED — EC2 not ready yet]
         //
@@ -203,24 +201,24 @@ pipeline {
         //     }
         // }
     }
- 
+
     // ---- Post pipeline actions ----
     post {
- 
+
         success {
             echo """
             ================================================
             ✅ PIPELINE SUCCESSFUL — Build #${BUILD_NUMBER}
- 
+
             Images on DockerHub:
             → ${BACKEND_IMAGE}:${IMAGE_TAG}
             → ${FRONTEND_IMAGE}:${IMAGE_TAG}
- 
+
             Next: Set up EC2 and enable Deploy stage.
             ================================================
             """
         }
- 
+
         failure {
             echo """
             ================================================
@@ -229,7 +227,7 @@ pipeline {
             ================================================
             """
         }
- 
+
         always {
             // ---- Cleanup dangling images on Jenkins machine ----
             // Every build creates new images. Old untagged ones waste disk.
@@ -239,4 +237,3 @@ pipeline {
         }
     }
 }
- 
