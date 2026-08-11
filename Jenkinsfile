@@ -17,9 +17,6 @@ pipeline {
  
     agent any
 
-    tools {
-        jdk 'JDK-21'    // ← ye add karo
-    }
  
     environment {
         // ---- Replace with your DockerHub username ----
